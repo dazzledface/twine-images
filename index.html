@@ -1,547 +1,1089 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Self-Hosting Images for Twine — COMP 380</title>
-<style>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Self-Hosting Images for Twine — COMP 380</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@300;400;500;600&display=swap");
 
-@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@300;400;500;600&display=swap');
+      :root {
+        --bg: #f7f6f2;
+        --surface: #ffffff;
+        --dark: #0f1923;
+        --teal: #0d9488;
+        --teal-lt: #14b8a6;
+        --teal-bg: #f0fdfa;
+        --amber: #92400e;
+        --amber-bg: #fffbeb;
+        --mid: #374151;
+        --sub: #6b7280;
+        --rule: #e5e7eb;
+        --code-bg: #0f1923;
+        --code-fg: #e2e8f0;
+        --code-teal: #5eead4;
+        --code-amber: #fcd34d;
+        --code-dim: #64748b;
+        --code-purple: #c4b5fd;
+        --code-red: #fca5a5;
+        --code-blue: #93c5fd;
+        --step-bg: #eff6ff;
+        --step-num: #1d4ed8;
+        --green: #065f46;
+        --green-bg: #ecfdf5;
+        --green-lt: #34d399;
+        --warn-border: #d97706;
+      }
 
-:root {
-  --bg:          #F7F6F2;
-  --surface:     #FFFFFF;
-  --dark:        #0F1923;
-  --teal:        #0D9488;
-  --teal-lt:     #14B8A6;
-  --teal-bg:     #F0FDFA;
-  --amber:       #92400E;
-  --amber-bg:    #FFFBEB;
-  --mid:         #374151;
-  --sub:         #6B7280;
-  --rule:        #E5E7EB;
-  --code-bg:     #0F1923;
-  --code-fg:     #E2E8F0;
-  --code-teal:   #5EEAD4;
-  --code-amber:  #FCD34D;
-  --code-dim:    #64748B;
-  --code-purple: #C4B5FD;
-  --code-red:    #FCA5A5;
-  --code-blue:   #93C5FD;
-  --step-bg:     #EFF6FF;
-  --step-num:    #1D4ED8;
-  --green:       #065F46;
-  --green-bg:    #ECFDF5;
-  --green-lt:    #34D399;
-  --warn-border: #D97706;
-}
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
+      body {
+        font-family: "DM Sans", sans-serif;
+        font-size: 16px;
+        line-height: 1.7;
+        color: var(--mid);
+        background: var(--bg);
+        -webkit-font-smoothing: antialiased;
+      }
 
-body {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 16px;
-  line-height: 1.7;
-  color: var(--mid);
-  background: var(--bg);
-  -webkit-font-smoothing: antialiased;
-}
+      /* ── Layout ──────────────────────────────────────────────────────────────── */
+      .page-wrap {
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        min-height: 100vh;
+      }
 
-/* ── Layout ──────────────────────────────────────────────────────────────── */
-.page-wrap {
-  display: grid;
-  grid-template-columns: 240px 1fr;
-  min-height: 100vh;
-}
+      /* ── Sidebar ─────────────────────────────────────────────────────────────── */
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        background: var(--dark);
+        padding: 2rem 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .sidebar-brand {
+        padding: 0 1.5rem 1.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        margin-bottom: 1rem;
+      }
+      .sidebar-brand .course {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--teal-lt);
+        display: block;
+        margin-bottom: 0.35rem;
+      }
+      .sidebar-brand .title {
+        font-family: "Lora", serif;
+        font-size: 13px;
+        font-weight: 600;
+        color: #f1f5f9;
+        line-height: 1.4;
+      }
+      .nav-section {
+        padding: 0.4rem 0;
+      }
+      .nav-section-label {
+        font-size: 9.5px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.3);
+        padding: 0.6rem 1.5rem 0.2rem;
+      }
+      .nav-link {
+        display: block;
+        padding: 0.4rem 1.5rem;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.55);
+        text-decoration: none;
+        border-left: 2px solid transparent;
+        transition: all 0.15s;
+      }
+      .nav-link:hover {
+        color: #f1f5f9;
+        background: rgba(255, 255, 255, 0.05);
+        border-left-color: var(--teal);
+      }
+      .nav-link.active {
+        color: var(--teal-lt);
+        border-left-color: var(--teal);
+        background: rgba(13, 148, 136, 0.1);
+      }
+      .nav-link.indent {
+        padding-left: 2.25rem;
+        font-size: 12px;
+      }
 
-/* ── Sidebar ─────────────────────────────────────────────────────────────── */
-.sidebar {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow-y: auto;
-  background: var(--dark);
-  padding: 2rem 0;
-  display: flex;
-  flex-direction: column;
-}
-.sidebar-brand {
-  padding: 0 1.5rem 1.5rem;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  margin-bottom: 1rem;
-}
-.sidebar-brand .course {
-  font-size: 10px; font-weight: 600; letter-spacing: 0.12em;
-  text-transform: uppercase; color: var(--teal-lt);
-  display: block; margin-bottom: 0.35rem;
-}
-.sidebar-brand .title {
-  font-family: 'Lora', serif; font-size: 13px;
-  font-weight: 600; color: #F1F5F9; line-height: 1.4;
-}
-.nav-section { padding: 0.4rem 0; }
-.nav-section-label {
-  font-size: 9.5px; font-weight: 600; letter-spacing: 0.12em;
-  text-transform: uppercase; color: rgba(255,255,255,0.3);
-  padding: 0.6rem 1.5rem 0.2rem;
-}
-.nav-link {
-  display: block; padding: 0.4rem 1.5rem; font-size: 13px;
-  color: rgba(255,255,255,0.55); text-decoration: none;
-  border-left: 2px solid transparent; transition: all 0.15s;
-}
-.nav-link:hover { color: #F1F5F9; background: rgba(255,255,255,0.05); border-left-color: var(--teal); }
-.nav-link.active { color: var(--teal-lt); border-left-color: var(--teal); background: rgba(13,148,136,0.1); }
-.nav-link.indent { padding-left: 2.25rem; font-size: 12px; }
+      /* ── Main ────────────────────────────────────────────────────────────────── */
+      main {
+        min-width: 0;
+        padding: 3rem 3.5rem 5rem;
+        max-width: 860px;
+      }
 
-/* ── Main ────────────────────────────────────────────────────────────────── */
-main { min-width: 0; padding: 3rem 3.5rem 5rem; max-width: 860px; }
+      /* ── Page header ─────────────────────────────────────────────────────────── */
+      .page-header {
+        margin-bottom: 3rem;
+        padding-bottom: 2rem;
+        border-bottom: 1px solid var(--rule);
+      }
+      .page-header .eyebrow {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--teal);
+        display: block;
+        margin-bottom: 0.75rem;
+      }
+      .page-header h1 {
+        font-family: "Lora", serif;
+        font-size: 2.4rem;
+        font-weight: 700;
+        color: var(--dark);
+        line-height: 1.2;
+        margin-bottom: 0.75rem;
+      }
+      .page-header .subtitle {
+        font-size: 1.05rem;
+        font-weight: 300;
+        color: var(--sub);
+        font-style: italic;
+        font-family: "Lora", serif;
+      }
 
-/* ── Page header ─────────────────────────────────────────────────────────── */
-.page-header { margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 1px solid var(--rule); }
-.page-header .eyebrow {
-  font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
-  text-transform: uppercase; color: var(--teal); display: block; margin-bottom: 0.75rem;
-}
-.page-header h1 {
-  font-family: 'Lora', serif; font-size: 2.4rem; font-weight: 700;
-  color: var(--dark); line-height: 1.2; margin-bottom: 0.75rem;
-}
-.page-header .subtitle {
-  font-size: 1.05rem; font-weight: 300; color: var(--sub);
-  font-style: italic; font-family: 'Lora', serif;
-}
+      /* ── Section ─────────────────────────────────────────────────────────────── */
+      .section {
+        margin-bottom: 4rem;
+      }
 
-/* ── Section ─────────────────────────────────────────────────────────────── */
-.section { margin-bottom: 4rem; }
+      .part-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+      .part-badge {
+        flex-shrink: 0;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        background: var(--teal);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        color: white;
+      }
+      .part-header h2 {
+        font-family: "Lora", serif;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--dark);
+      }
 
-.part-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
-.part-badge {
-  flex-shrink: 0; width: 2rem; height: 2rem; border-radius: 50%;
-  background: var(--teal); display: flex; align-items: center;
-  justify-content: center; font-size: 11px; font-weight: 700; color: white;
-}
-.part-header h2 { font-family: 'Lora', serif; font-size: 1.5rem; font-weight: 700; color: var(--dark); }
+      h3 {
+        font-family: "DM Sans", sans-serif;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--teal);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin: 2rem 0 0.75rem;
+      }
 
-h3 {
-  font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 600;
-  color: var(--teal); text-transform: uppercase; letter-spacing: 0.06em; margin: 2rem 0 0.75rem;
-}
+      p {
+        margin-bottom: 0.9rem;
+        font-size: 15.5px;
+        line-height: 1.75;
+      }
+      p:last-child {
+        margin-bottom: 0;
+      }
 
-p { margin-bottom: 0.9rem; font-size: 15.5px; line-height: 1.75; }
-p:last-child { margin-bottom: 0; }
+      /* ── Why GitHub card ─────────────────────────────────────────────────────── */
+      .highlight-card {
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-top: 4px solid var(--teal);
+        border-radius: 0 0 8px 8px;
+        padding: 1.4rem 1.6rem;
+        margin: 1.5rem 0;
+      }
+      .highlight-card .card-label {
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--teal);
+        margin-bottom: 0.6rem;
+      }
+      .highlight-card p {
+        font-size: 15px;
+        color: var(--mid);
+        margin-bottom: 0.5rem;
+      }
 
-/* ── Why GitHub card ─────────────────────────────────────────────────────── */
-.highlight-card {
-  background: var(--surface);
-  border: 1px solid var(--rule);
-  border-top: 4px solid var(--teal);
-  border-radius: 0 0 8px 8px;
-  padding: 1.4rem 1.6rem;
-  margin: 1.5rem 0;
-}
-.highlight-card .card-label {
-  font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--teal); margin-bottom: 0.6rem;
-}
-.highlight-card p { font-size: 15px; color: var(--mid); margin-bottom: 0.5rem; }
+      /* ── Comparison grid ─────────────────────────────────────────────────────── */
+      .option-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin: 1.5rem 0;
+      }
 
-/* ── Comparison grid ─────────────────────────────────────────────────────── */
-.option-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
+      .option-card {
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        overflow: hidden;
+      }
+      .option-card-head {
+        padding: 0.8rem 1.1rem;
+        border-bottom: 1px solid var(--rule);
+        background: #f8fafc;
+      }
+      .option-card-head .option-name {
+        font-weight: 600;
+        font-size: 14.5px;
+        color: var(--dark);
+      }
+      .option-card-body {
+        padding: 0.9rem 1.1rem;
+      }
+      .option-card-body p {
+        font-size: 13.5px;
+        color: var(--mid);
+        margin-bottom: 0.5rem;
+        line-height: 1.6;
+      }
 
-.option-card {
-  background: var(--surface); border: 1px solid var(--rule);
-  border-radius: 6px; overflow: hidden;
-}
-.option-card-head { padding: 0.8rem 1.1rem; border-bottom: 1px solid var(--rule); background: #F8FAFC; }
-.option-card-head .option-name { font-weight: 600; font-size: 14.5px; color: var(--dark); }
-.option-card-body { padding: 0.9rem 1.1rem; }
-.option-card-body p { font-size: 13.5px; color: var(--mid); margin-bottom: 0.5rem; line-height: 1.6; }
+      .tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-top: 0.6rem;
+      }
+      .tag {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 0.15em 0.5em;
+        border-radius: 3px;
+      }
+      .tag.good {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+      .tag.warn {
+        background: var(--amber-bg);
+        color: var(--amber);
+      }
+      .tag.info {
+        background: var(--step-bg);
+        color: var(--step-num);
+      }
 
-.tag-row { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.6rem; }
-.tag {
-  font-size: 11px; font-weight: 600;
-  padding: 0.15em 0.5em; border-radius: 3px;
-}
-.tag.good { background: var(--green-bg); color: var(--green); }
-.tag.warn { background: var(--amber-bg); color: var(--amber); }
-.tag.info { background: var(--step-bg); color: var(--step-num); }
+      /* ── Steps ───────────────────────────────────────────────────────────────── */
+      .steps {
+        list-style: none;
+        counter-reset: steps;
+        margin: 1.25rem 0;
+      }
+      .steps li {
+        counter-increment: steps;
+        display: grid;
+        grid-template-columns: 2rem 1fr;
+        gap: 0.75rem;
+        margin-bottom: 0.9rem;
+        align-items: start;
+      }
+      .steps li::before {
+        content: counter(steps);
+        width: 2rem;
+        height: 2rem;
+        background: var(--step-bg);
+        border: 1.5px solid #bfdbfe;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--step-num);
+        flex-shrink: 0;
+        margin-top: 0.1rem;
+      }
+      .steps li p {
+        margin: 0;
+        padding-top: 0.2rem;
+      }
 
-/* ── Steps ───────────────────────────────────────────────────────────────── */
-.steps { list-style: none; counter-reset: steps; margin: 1.25rem 0; }
-.steps li {
-  counter-increment: steps;
-  display: grid; grid-template-columns: 2rem 1fr;
-  gap: 0.75rem; margin-bottom: 0.9rem; align-items: start;
-}
-.steps li::before {
-  content: counter(steps);
-  width: 2rem; height: 2rem;
-  background: var(--step-bg); border: 1.5px solid #BFDBFE;
-  border-radius: 50%; display: flex; align-items: center;
-  justify-content: center; font-size: 12px; font-weight: 700;
-  color: var(--step-num); flex-shrink: 0; margin-top: 0.1rem;
-}
-.steps li p { margin: 0; padding-top: 0.2rem; }
+      /* ── Sub-bullets ─────────────────────────────────────────────────────────── */
+      .subbullets {
+        list-style: none;
+        margin: 0.5rem 0 0.75rem 2.75rem;
+      }
+      .subbullets li {
+        position: relative;
+        padding-left: 1.1rem;
+        margin-bottom: 0.4rem;
+        font-size: 14.5px;
+        line-height: 1.6;
+      }
+      .subbullets li::before {
+        content: "–";
+        position: absolute;
+        left: 0;
+        color: var(--teal);
+        font-weight: 600;
+      }
 
-/* ── Sub-bullets ─────────────────────────────────────────────────────────── */
-.subbullets { list-style: none; margin: 0.5rem 0 0.75rem 2.75rem; }
-.subbullets li {
-  position: relative; padding-left: 1.1rem;
-  margin-bottom: 0.4rem; font-size: 14.5px; line-height: 1.6;
-}
-.subbullets li::before { content: "–"; position: absolute; left: 0; color: var(--teal); font-weight: 600; }
+      /* ── Code ────────────────────────────────────────────────────────────────── */
+      pre {
+        background: var(--code-bg);
+        border-radius: 6px;
+        border-left: 3px solid var(--teal);
+        padding: 1.2rem 1.4rem;
+        margin: 1rem 0 1.2rem;
+        overflow-x: auto;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 13px;
+        line-height: 1.65;
+        color: var(--code-fg);
+      }
+      pre.css-block {
+        border-left-color: #7c3aed;
+      }
+      pre.path-block {
+        border-left-color: var(--green-lt);
+      }
 
-/* ── Code ────────────────────────────────────────────────────────────────── */
-pre {
-  background: var(--code-bg); border-radius: 6px;
-  border-left: 3px solid var(--teal); padding: 1.2rem 1.4rem;
-  margin: 1rem 0 1.2rem; overflow-x: auto;
-  font-family: 'JetBrains Mono', monospace; font-size: 13px;
-  line-height: 1.65; color: var(--code-fg);
-}
-pre.css-block  { border-left-color: #7C3AED; }
-pre.path-block { border-left-color: var(--green-lt); }
+      pre .comment {
+        color: var(--code-dim);
+        font-style: italic;
+      }
+      pre .key {
+        color: var(--code-teal);
+      }
+      pre .val {
+        color: var(--code-amber);
+      }
+      pre .tag {
+        color: var(--code-blue);
+      }
+      pre .attr {
+        color: var(--code-red);
+      }
+      pre .string {
+        color: var(--code-amber);
+      }
+      pre .fn {
+        color: var(--code-purple);
+      }
+      pre .macro {
+        color: var(--code-teal);
+      }
+      pre .url {
+        color: var(--green-lt);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      pre .hi {
+        color: #fde68a;
+        font-weight: 600;
+      }
 
-pre .comment { color: var(--code-dim); font-style: italic; }
-pre .key     { color: var(--code-teal); }
-pre .val     { color: var(--code-amber); }
-pre .tag     { color: var(--code-blue); }
-pre .attr    { color: var(--code-red); }
-pre .string  { color: var(--code-amber); }
-pre .fn      { color: var(--code-purple); }
-pre .macro   { color: var(--code-teal); }
-pre .url     { color: var(--green-lt); text-decoration: underline; text-underline-offset: 3px; }
-pre .hi      { color: #FDE68A; font-weight: 600; }
+      code {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12.5px;
+        background: #eef2f7;
+        color: var(--teal);
+        padding: 0.1em 0.4em;
+        border-radius: 3px;
+        font-weight: 600;
+      }
+      pre code {
+        background: none;
+        color: inherit;
+        padding: 0;
+        font-size: inherit;
+        font-weight: inherit;
+      }
 
-code {
-  font-family: 'JetBrains Mono', monospace; font-size: 12.5px;
-  background: #EEF2F7; color: var(--teal);
-  padding: 0.1em 0.4em; border-radius: 3px; font-weight: 600;
-}
-pre code { background: none; color: inherit; padding: 0; font-size: inherit; font-weight: inherit; }
+      /* ── Callouts ────────────────────────────────────────────────────────────── */
+      .callout {
+        border-radius: 0 6px 6px 0;
+        padding: 1.1rem 1.3rem;
+        margin: 1.25rem 0;
+        border-left: 4px solid;
+      }
+      .callout.tip {
+        background: var(--teal-bg);
+        border-color: var(--teal);
+      }
+      .callout.warning {
+        background: var(--amber-bg);
+        border-color: var(--warn-border);
+      }
+      .callout.note {
+        background: var(--step-bg);
+        border-color: var(--step-num);
+      }
+      .callout.claude {
+        background: #faf5ff;
+        border-color: #7c3aed;
+      }
 
-/* ── Callouts ────────────────────────────────────────────────────────────── */
-.callout {
-  border-radius: 0 6px 6px 0; padding: 1.1rem 1.3rem;
-  margin: 1.25rem 0; border-left: 4px solid;
-}
-.callout.tip     { background: var(--teal-bg); border-color: var(--teal); }
-.callout.warning { background: var(--amber-bg); border-color: var(--warn-border); }
-.callout.note    { background: var(--step-bg);  border-color: var(--step-num); }
-.callout.claude  { background: #FAF5FF; border-color: #7C3AED; }
+      .callout-label {
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 0.5rem;
+      }
+      .callout.tip .callout-label {
+        color: var(--teal);
+      }
+      .callout.warning .callout-label {
+        color: var(--amber);
+      }
+      .callout.note .callout-label {
+        color: var(--step-num);
+      }
+      .callout.claude .callout-label {
+        color: #6d28d9;
+      }
 
-.callout-label {
-  font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em;
-  text-transform: uppercase; margin-bottom: 0.5rem;
-}
-.callout.tip .callout-label     { color: var(--teal); }
-.callout.warning .callout-label { color: var(--amber); }
-.callout.note .callout-label    { color: var(--step-num); }
-.callout.claude .callout-label  { color: #6D28D9; }
+      .callout p {
+        font-size: 14.5px;
+        line-height: 1.65;
+        margin-bottom: 0.5rem;
+      }
+      .callout p:last-child {
+        margin-bottom: 0;
+      }
+      .callout.tip p {
+        color: #0f766e;
+      }
+      .callout.warning p {
+        color: var(--amber);
+      }
+      .callout.note p {
+        color: #1e40af;
+      }
+      .callout.claude p {
+        color: #5b21b6;
+      }
 
-.callout p { font-size: 14.5px; line-height: 1.65; margin-bottom: 0.5rem; }
-.callout p:last-child { margin-bottom: 0; }
-.callout.tip p     { color: #0F766E; }
-.callout.warning p { color: var(--amber); }
-.callout.note p    { color: #1E40AF; }
-.callout.claude p  { color: #5B21B6; }
+      /* ── URL anatomy diagram ─────────────────────────────────────────────────── */
+      .url-diagram {
+        background: var(--code-bg);
+        border-radius: 6px;
+        border-left: 3px solid var(--green-lt);
+        padding: 1.3rem 1.5rem;
+        margin: 1rem 0 0.5rem;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 13px;
+        line-height: 1.5;
+        overflow-x: auto;
+      }
+      .url-diagram .url-line {
+        color: var(--code-fg);
+        margin-bottom: 0.3rem;
+      }
+      .url-diagram .url-label-row {
+        display: flex;
+        gap: 0;
+        margin-top: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .url-part {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 0 0.3rem;
+        font-size: 11px;
+        color: var(--code-dim);
+      }
+      .url-part .tick {
+        border-top: 1px solid;
+        width: 100%;
+        margin-bottom: 0.25rem;
+      }
+      .url-part.p1 .tick {
+        color: var(--code-teal);
+      }
+      .url-part.p1 {
+        color: var(--code-teal);
+      }
+      .url-part.p2 .tick {
+        color: #93c5fd;
+      }
+      .url-part.p2 {
+        color: #93c5fd;
+      }
+      .url-part.p3 .tick {
+        color: var(--code-amber);
+      }
+      .url-part.p3 {
+        color: var(--code-amber);
+      }
+      .url-part.p4 .tick {
+        color: var(--green-lt);
+      }
+      .url-part.p4 {
+        color: var(--green-lt);
+      }
 
-/* ── URL anatomy diagram ─────────────────────────────────────────────────── */
-.url-diagram {
-  background: var(--code-bg); border-radius: 6px;
-  border-left: 3px solid var(--green-lt);
-  padding: 1.3rem 1.5rem; margin: 1rem 0 0.5rem;
-  font-family: 'JetBrains Mono', monospace; font-size: 13px;
-  line-height: 1.5; overflow-x: auto;
-}
-.url-diagram .url-line { color: var(--code-fg); margin-bottom: 0.3rem; }
-.url-diagram .url-label-row { display: flex; gap: 0; margin-top: 0.5rem; flex-wrap: wrap; }
-.url-part {
-  display: flex; flex-direction: column; align-items: center;
-  padding: 0 0.3rem; font-size: 11px; color: var(--code-dim);
-}
-.url-part .tick { border-top: 1px solid; width: 100%; margin-bottom: 0.25rem; }
-.url-part.p1 .tick { color: var(--code-teal); }
-.url-part.p1 { color: var(--code-teal); }
-.url-part.p2 .tick { color: #93C5FD; }
-.url-part.p2 { color: #93C5FD; }
-.url-part.p3 .tick { color: var(--code-amber); }
-.url-part.p3 { color: var(--code-amber); }
-.url-part.p4 .tick { color: var(--green-lt); }
-.url-part.p4 { color: var(--green-lt); }
+      /* ── File size visual ────────────────────────────────────────────────────── */
+      .size-bar {
+        margin: 1rem 0;
+      }
+      .size-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.5rem;
+      }
+      .size-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--dark);
+        width: 3.5rem;
+        flex-shrink: 0;
+      }
+      .size-track {
+        flex: 1;
+        height: 0.55rem;
+        background: var(--rule);
+        border-radius: 999px;
+        overflow: hidden;
+      }
+      .size-fill {
+        height: 100%;
+        border-radius: 999px;
+      }
+      .size-fill.green {
+        background: #10b981;
+        width: 15%;
+      }
+      .size-fill.yellow {
+        background: #f59e0b;
+        width: 35%;
+      }
+      .size-fill.red {
+        background: #ef4444;
+        width: 100%;
+      }
+      .size-note {
+        font-size: 12px;
+        color: var(--sub);
+      }
 
-/* ── File size visual ────────────────────────────────────────────────────── */
-.size-bar { margin: 1rem 0; }
-.size-row {
-  display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;
-}
-.size-label { font-size: 13px; font-weight: 600; color: var(--dark); width: 3.5rem; flex-shrink: 0; }
-.size-track {
-  flex: 1; height: 0.55rem; background: var(--rule);
-  border-radius: 999px; overflow: hidden;
-}
-.size-fill { height: 100%; border-radius: 999px; }
-.size-fill.green  { background: #10B981; width: 15%; }
-.size-fill.yellow { background: #F59E0B; width: 35%; }
-.size-fill.red    { background: #EF4444; width: 100%; }
-.size-note { font-size: 12px; color: var(--sub); }
+      /* ── Table ───────────────────────────────────────────────────────────────── */
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1.25rem 0;
+        font-size: 14px;
+      }
+      .data-table th {
+        background: var(--dark);
+        color: white;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding: 0.65rem 1rem;
+        text-align: left;
+      }
+      .data-table td {
+        padding: 0.7rem 1rem;
+        border-bottom: 1px solid var(--rule);
+        vertical-align: top;
+        line-height: 1.55;
+      }
+      .data-table tr:last-child td {
+        border-bottom: none;
+      }
+      .data-table td:first-child {
+        font-weight: 600;
+        color: var(--dark);
+        background: #f8fafc;
+      }
+      .data-table td {
+        background: white;
+        color: var(--mid);
+      }
 
-/* ── Table ───────────────────────────────────────────────────────────────── */
-.data-table { width: 100%; border-collapse: collapse; margin: 1.25rem 0; font-size: 14px; }
-.data-table th {
-  background: var(--dark); color: white;
-  font-size: 12px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.06em;
-  padding: 0.65rem 1rem; text-align: left;
-}
-.data-table td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--rule); vertical-align: top; line-height: 1.55; }
-.data-table tr:last-child td { border-bottom: none; }
-.data-table td:first-child { font-weight: 600; color: var(--dark); background: #F8FAFC; }
-.data-table td { background: white; color: var(--mid); }
+      /* ── Checklist ───────────────────────────────────────────────────────────── */
+      .checklist {
+        list-style: none;
+        margin: 1rem 0;
+      }
+      .checklist li {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--rule);
+        font-size: 14.5px;
+        color: var(--mid);
+        line-height: 1.5;
+      }
+      .checklist li:last-child {
+        border-bottom: none;
+      }
+      .checklist li::before {
+        content: "";
+        flex-shrink: 0;
+        width: 1.1rem;
+        height: 1.1rem;
+        border: 2px solid #d1d5db;
+        border-radius: 3px;
+        margin-top: 0.15rem;
+        background: white;
+      }
 
-/* ── Checklist ───────────────────────────────────────────────────────────── */
-.checklist { list-style: none; margin: 1rem 0; }
-.checklist li {
-  display: flex; align-items: flex-start; gap: 0.75rem;
-  padding: 0.5rem 0; border-bottom: 1px solid var(--rule);
-  font-size: 14.5px; color: var(--mid); line-height: 1.5;
-}
-.checklist li:last-child { border-bottom: none; }
-.checklist li::before {
-  content: ""; flex-shrink: 0; width: 1.1rem; height: 1.1rem;
-  border: 2px solid #D1D5DB; border-radius: 3px;
-  margin-top: 0.15rem; background: white;
-}
+      hr.sep {
+        border: none;
+        border-top: 1px solid var(--rule);
+        margin: 3rem 0;
+      }
 
-hr.sep { border: none; border-top: 1px solid var(--rule); margin: 3rem 0; }
+      /* ── Responsive ──────────────────────────────────────────────────────────── */
+      @media (max-width: 900px) {
+        .page-wrap {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          position: static;
+          height: auto;
+          padding: 1rem 1.5rem;
+          flex-direction: row;
+          flex-wrap: wrap;
+        }
+        .sidebar-brand {
+          border: none;
+          padding: 0;
+          margin: 0;
+        }
+        .nav-section {
+          display: none;
+        }
+        main {
+          padding: 2rem 1.5rem 4rem;
+          max-width: 100%;
+        }
+        .option-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media print {
+        .sidebar {
+          display: none;
+        }
+        .page-wrap {
+          display: block;
+        }
+        main {
+          padding: 0;
+          max-width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-wrap">
+      <!-- ── Sidebar ── -->
+      <nav class="sidebar" aria-label="Guide navigation">
+        <div class="sidebar-brand">
+          <span class="course">COMP 380 · Harlowe</span>
+          <span class="title">Self-Hosting Images for Twine</span>
+        </div>
 
-/* ── Responsive ──────────────────────────────────────────────────────────── */
-@media (max-width: 900px) {
-  .page-wrap { grid-template-columns: 1fr; }
-  .sidebar { position: static; height: auto; padding: 1rem 1.5rem; flex-direction: row; flex-wrap: wrap; }
-  .sidebar-brand { border: none; padding: 0; margin: 0; }
-  .nav-section { display: none; }
-  main { padding: 2rem 1.5rem 4rem; max-width: 100%; }
-  .option-grid { grid-template-columns: 1fr; }
-}
-@media print { .sidebar { display: none; } .page-wrap { display: block; } main { padding: 0; max-width: 100%; } }
+        <div class="nav-section">
+          <div class="nav-section-label">Overview</div>
+          <a href="#why" class="nav-link">Why hosting is needed</a>
+          <a href="#options" class="nav-link">Your options at a glance</a>
+        </div>
 
-</style>
-</head>
-<body>
+        <div class="nav-section">
+          <div class="nav-section-label">Part 1 — GitHub</div>
+          <a href="#github-repo" class="nav-link">Create a repository</a>
+          <a href="#github-upload" class="nav-link indent">Upload your image</a>
+          <a href="#github-url" class="nav-link indent">Get the raw URL</a>
+          <a href="#github-use" class="nav-link indent">Use it in Twine</a>
+        </div>
 
-<div class="page-wrap">
+        <div class="nav-section">
+          <div class="nav-section-label">Part 2 — Prepare images</div>
+          <a href="#formats" class="nav-link">File formats</a>
+          <a href="#filesize" class="nav-link">File size & compression</a>
+          <a href="#ask-claude" class="nav-link">Asking Claude for help</a>
+        </div>
 
-  <!-- ── Sidebar ── -->
-  <nav class="sidebar" aria-label="Guide navigation">
-    <div class="sidebar-brand">
-      <span class="course">COMP 380 · Harlowe</span>
-      <span class="title">Self-Hosting Images for Twine</span>
-    </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Part 3 — Other options</div>
+          <a href="#other-hosts" class="nav-link">Other hosting options</a>
+          <a href="#free-images" class="nav-link">Free image sources</a>
+        </div>
 
-    <div class="nav-section">
-      <div class="nav-section-label">Overview</div>
-      <a href="#why" class="nav-link">Why hosting is needed</a>
-      <a href="#options" class="nav-link">Your options at a glance</a>
-    </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Reference</div>
+          <a href="#checklist" class="nav-link">Checklist</a>
+          <a href="#troubleshooting" class="nav-link">Troubleshooting</a>
+        </div>
+      </nav>
 
-    <div class="nav-section">
-      <div class="nav-section-label">Part 1 — GitHub</div>
-      <a href="#github-repo" class="nav-link">Create a repository</a>
-      <a href="#github-upload" class="nav-link indent">Upload your image</a>
-      <a href="#github-url" class="nav-link indent">Get the raw URL</a>
-      <a href="#github-use" class="nav-link indent">Use it in Twine</a>
-    </div>
+      <!-- ── Main ── -->
+      <main id="main">
+        <header class="page-header">
+          <span class="eyebrow"
+            >COMP 380 · Technology, Ethics &amp; Culture · Harlowe</span
+          >
+          <h1>Self-Hosting Images for Twine</h1>
+          <p class="subtitle">
+            How to make your images available online so they work reliably in
+            your Twine story
+          </p>
+        </header>
 
-    <div class="nav-section">
-      <div class="nav-section-label">Part 2 — Prepare images</div>
-      <a href="#formats" class="nav-link">File formats</a>
-      <a href="#filesize" class="nav-link">File size & compression</a>
-      <a href="#ask-claude" class="nav-link">Asking Claude for help</a>
-    </div>
+        <p style="font-size: 16px; line-height: 1.8">
+          Images in Twine need to be reachable by a browser — which means they
+          need to be somewhere on the internet, not just on your computer. This
+          guide walks you through the simplest reliable way to host your own
+          images, and covers some alternatives depending on where your images
+          come from.
+        </p>
 
-    <div class="nav-section">
-      <div class="nav-section-label">Part 3 — Other options</div>
-      <a href="#other-hosts" class="nav-link">Other hosting options</a>
-      <a href="#free-images" class="nav-link">Free image sources</a>
-    </div>
+        <!-- ── WHY ── -->
+        <section class="section" id="why">
+          <div class="part-header">
+            <div class="part-badge">→</div>
+            <h2>Why images need to be hosted</h2>
+          </div>
 
-    <div class="nav-section">
-      <div class="nav-section-label">Reference</div>
-      <a href="#checklist" class="nav-link">Checklist</a>
-      <a href="#troubleshooting" class="nav-link">Troubleshooting</a>
-    </div>
-  </nav>
+          <p>
+            A Twine story exports as a single <code>.html</code> file. When you
+            open that file in a browser and it encounters an
+            <code>&lt;img&gt;</code> tag or a <code>background-image</code> CSS
+            rule pointing to a filename on your computer — like
+            <code>"forest.jpg"</code> — the browser cannot load it. The file is
+            on <em>your</em> computer, not on the web. Anyone else who opens
+            your story file sees a broken image.
+          </p>
 
-  <!-- ── Main ── -->
-  <main id="main">
+          <p>
+            There are two solutions: put the image somewhere on the internet and
+            reference it with a full <code>https://</code> URL, or embed the
+            image data directly inside the HTML file using Base64 encoding. This
+            guide focuses on the first approach — hosting — which is more
+            practical for most images and keeps your story file a manageable
+            size.
+          </p>
 
-    <header class="page-header">
-      <span class="eyebrow">COMP 380 · Technology, Ethics &amp; Culture · Harlowe</span>
-      <h1>Self-Hosting Images for Twine</h1>
-      <p class="subtitle">How to make your images available online so they work reliably in your Twine story</p>
-    </header>
+          <div class="callout note">
+            <div class="callout-label">ℹ️ One exception</div>
+            <p>
+              If you publish your story to a web server and keep the image files
+              in the same folder as the <code>.html</code> file, relative paths
+              like <code>"images/forest.jpg"</code> work fine. This is covered
+              briefly in Part 3, but for most students a hosted URL is simpler.
+            </p>
+          </div>
 
-    <p style="font-size:16px; line-height:1.8;">Images in Twine need to be reachable by a browser — which means they need to be somewhere on the internet, not just on your computer. This guide walks you through the simplest reliable way to host your own images, and covers some alternatives depending on where your images come from.</p>
+          <h3 id="options">Your options at a glance</h3>
 
-    <!-- ── WHY ── -->
-    <section class="section" id="why">
-      <div class="part-header">
-        <div class="part-badge">→</div>
-        <h2>Why images need to be hosted</h2>
-      </div>
-
-      <p>A Twine story exports as a single <code>.html</code> file. When you open that file in a browser and it encounters an <code>&lt;img&gt;</code> tag or a <code>background-image</code> CSS rule pointing to a filename on your computer — like <code>"forest.jpg"</code> — the browser cannot load it. The file is on <em>your</em> computer, not on the web. Anyone else who opens your story file sees a broken image.</p>
-
-      <p>There are two solutions: put the image somewhere on the internet and reference it with a full <code>https://</code> URL, or embed the image data directly inside the HTML file using Base64 encoding. This guide focuses on the first approach — hosting — which is more practical for most images and keeps your story file a manageable size.</p>
-
-      <div class="callout note">
-        <div class="callout-label">ℹ️ One exception</div>
-        <p>If you publish your story to a web server and keep the image files in the same folder as the <code>.html</code> file, relative paths like <code>"images/forest.jpg"</code> work fine. This is covered briefly in Part 3, but for most students a hosted URL is simpler.</p>
-      </div>
-
-      <h3 id="options">Your options at a glance</h3>
-
-      <div class="option-grid">
-        <div class="option-card">
-          <div class="option-card-head"><div class="option-name">GitHub ⭐ Recommended</div></div>
-          <div class="option-card-body">
-            <p>Upload images to a public repository and use the raw file URL. Free, stable, no expiry.</p>
-            <div class="tag-row">
-              <span class="tag good">Free</span>
-              <span class="tag good">Stable URLs</span>
-              <span class="tag good">Any image you own</span>
-              <span class="tag info">Needs an account</span>
+          <div class="option-grid">
+            <div class="option-card">
+              <div class="option-card-head">
+                <div class="option-name">GitHub ⭐ Recommended</div>
+              </div>
+              <div class="option-card-body">
+                <p>
+                  Upload images to a public repository and use the raw file URL.
+                  Free, stable, no expiry.
+                </p>
+                <div class="tag-row">
+                  <span class="tag good">Free</span>
+                  <span class="tag good">Stable URLs</span>
+                  <span class="tag good">Any image you own</span>
+                  <span class="tag info">Needs an account</span>
+                </div>
+              </div>
+            </div>
+            <div class="option-card">
+              <div class="option-card-head">
+                <div class="option-name">Unsplash / Pexels</div>
+              </div>
+              <div class="option-card-body">
+                <p>
+                  Right-click any photo and copy the image address. No account
+                  needed for the URL.
+                </p>
+                <div class="tag-row">
+                  <span class="tag good">Free</span>
+                  <span class="tag good">No account</span>
+                  <span class="tag warn">Only their photos</span>
+                </div>
+              </div>
+            </div>
+            <div class="option-card">
+              <div class="option-card-head">
+                <div class="option-name">Wikimedia Commons</div>
+              </div>
+              <div class="option-card-body">
+                <p>
+                  Open the file page, click through to the full image, copy the
+                  URL. Check the licence.
+                </p>
+                <div class="tag-row">
+                  <span class="tag good">Free</span>
+                  <span class="tag good">Stable URLs</span>
+                  <span class="tag warn">Licence varies</span>
+                </div>
+              </div>
+            </div>
+            <div class="option-card">
+              <div class="option-card-head">
+                <div class="option-name">Flickr</div>
+              </div>
+              <div class="option-card-body">
+                <p>
+                  Good for your own photos. Set images to public, then
+                  right-click to get a direct URL.
+                </p>
+                <div class="tag-row">
+                  <span class="tag good">Your own photos</span>
+                  <span class="tag info">Account needed</span>
+                  <span class="tag warn">Must be public</span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="option-card">
-          <div class="option-card-head"><div class="option-name">Unsplash / Pexels</div></div>
-          <div class="option-card-body">
-            <p>Right-click any photo and copy the image address. No account needed for the URL.</p>
-            <div class="tag-row">
-              <span class="tag good">Free</span>
-              <span class="tag good">No account</span>
-              <span class="tag warn">Only their photos</span>
+        </section>
+
+        <hr class="sep" />
+
+        <!-- ── PART 1: GITHUB ── -->
+        <section class="section">
+          <div class="part-header">
+            <div class="part-badge">1</div>
+            <h2>Hosting on GitHub</h2>
+          </div>
+
+          <p>
+            GitHub is primarily a code-hosting platform, but it works just as
+            well for images. A public repository is freely accessible to anyone
+            — including browsers loading your Twine story — and the URLs are
+            permanent as long as you don't rename or delete the file.
+          </p>
+
+          <div class="highlight-card">
+            <div class="card-label">Why GitHub specifically</div>
+            <p>
+              It's free with no storage limits for public repositories within
+              reason. The URLs are stable — they don't expire or change without
+              you doing something. You likely have or will have a GitHub account
+              for other coursework. And the web interface makes uploading a
+              drag-and-drop operation — no command line needed.
+            </p>
+          </div>
+
+          <!-- Create repo -->
+          <h3 id="github-repo">
+            Step 1 — Create a repository for your Twine images
+          </h3>
+          <p>
+            If you already have a GitHub account and an existing repository
+            where you want to keep your images, you can skip straight to Step 2.
+            Otherwise:
+          </p>
+
+          <ol class="steps">
+            <li>
+              <p>
+                Go to <strong>github.com</strong> and sign in (or create a free
+                account if you don't have one yet).
+              </p>
+            </li>
+            <li>
+              <p>
+                Click the <strong>+</strong> icon in the top-right corner →
+                <strong>New repository</strong>.
+              </p>
+            </li>
+            <li>
+              <p>
+                Give it a name — something like <code>twine-images</code> or
+                <code>comp380-assets</code>.
+              </p>
+            </li>
+            <li>
+              <p>
+                Set the visibility to <strong>Public</strong>. This is essential
+                — a private repository cannot serve images to a browser.
+              </p>
+            </li>
+            <li>
+              <p>
+                Check <strong>Add a README file</strong> so the repository is
+                not empty.
+              </p>
+            </li>
+            <li>
+              <p>Click <strong>Create repository</strong>.</p>
+            </li>
+          </ol>
+
+          <div class="callout tip">
+            <div class="callout-label">💡 Keep it organised</div>
+            <p>
+              Create a folder called <code>images</code> inside your repository
+              to keep things tidy. You can do this by clicking
+              <strong>Add file → Create new file</strong>, typing
+              <code>images/.gitkeep</code> as the filename, and committing. From
+              then on you can upload images directly into that folder.
+            </p>
+          </div>
+
+          <!-- Upload -->
+          <h3 id="github-upload">Step 2 — Upload your image</h3>
+
+          <ol class="steps">
+            <li>
+              <p>
+                Navigate to the folder in your repository where you want to
+                store the image (e.g. the <code>images</code> folder).
+              </p>
+            </li>
+            <li>
+              <p>Click <strong>Add file → Upload files</strong>.</p>
+            </li>
+            <li>
+              <p>
+                Drag your image file into the upload area, or click
+                <strong>choose your files</strong> to browse.
+              </p>
+            </li>
+            <li>
+              <p>
+                Scroll down and click <strong>Commit changes</strong>. The
+                default commit message is fine.
+              </p>
+            </li>
+            <li><p>Your image is now uploaded and publicly accessible.</p></li>
+          </ol>
+
+          <div class="callout warning">
+            <div class="callout-label">⚠️ Filenames matter</div>
+            <p>
+              GitHub filenames are case-sensitive and spaces in filenames can
+              cause URL problems. Before uploading, rename your file to use only
+              lowercase letters, numbers, and hyphens — for example
+              <code>forest-path.jpg</code> rather than
+              <code>Forest Path.jpg</code>.
+            </p>
+          </div>
+
+          <!-- Get URL -->
+          <h3 id="github-url">Step 3 — Get the raw URL</h3>
+
+          <p>
+            There are two kinds of URLs for a file on GitHub. You want the
+            <strong>raw</strong> URL — not the regular page URL.
+          </p>
+
+          <ol class="steps">
+            <li>
+              <p>
+                After uploading, click on your image file in the repository to
+                open it.
+              </p>
+            </li>
+            <li>
+              <p>
+                Click the <strong>Raw</strong> button (top right of the file
+                preview area).
+              </p>
+            </li>
+            <li>
+              <p>
+                Your browser will load just the image. Copy the URL from the
+                address bar.
+              </p>
+            </li>
+          </ol>
+
+          <p>The raw URL follows this pattern:</p>
+
+          <div class="url-diagram">
+            <div class="url-line">
+              https://raw.githubusercontent.com/your-username/your-repo/main/images/forest-path.jpg
             </div>
           </div>
-        </div>
-        <div class="option-card">
-          <div class="option-card-head"><div class="option-name">Wikimedia Commons</div></div>
-          <div class="option-card-body">
-            <p>Open the file page, click through to the full image, copy the URL. Check the licence.</p>
-            <div class="tag-row">
-              <span class="tag good">Free</span>
-              <span class="tag good">Stable URLs</span>
-              <span class="tag warn">Licence varies</span>
+
+          <p style="margin-top: 0.75rem">
+            You can also construct it manually if you know your username,
+            repository name, branch name, and file path. The branch is almost
+            always <code>main</code> for a newly created repository.
+          </p>
+
+          <div class="callout warning">
+            <div class="callout-label">
+              ⚠️ Do not use the regular GitHub page URL
             </div>
+            <p>
+              The URL you see when browsing GitHub — like
+              <code>github.com/username/repo/blob/main/images/forest.jpg</code>
+              — points to a webpage containing the image preview, not the image
+              itself. Twine will load an HTML page instead of the image. Always
+              use the <code>raw.githubusercontent.com</code> URL.
+            </p>
           </div>
-        </div>
-        <div class="option-card">
-          <div class="option-card-head"><div class="option-name">Flickr</div></div>
-          <div class="option-card-body">
-            <p>Good for your own photos. Set images to public, then right-click to get a direct URL.</p>
-            <div class="tag-row">
-              <span class="tag good">Your own photos</span>
-              <span class="tag info">Account needed</span>
-              <span class="tag warn">Must be public</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
-    <hr class="sep">
+          <!-- Use in Twine -->
+          <h3 id="github-use">Step 4 — Use the URL in your Twine story</h3>
 
-    <!-- ── PART 1: GITHUB ── -->
-    <section class="section">
-      <div class="part-header">
-        <div class="part-badge">1</div>
-        <h2>Hosting on GitHub</h2>
-      </div>
+          <p>
+            Once you have the raw URL, you can drop it directly into any of the
+            Harlowe background methods. Here are ready-to-paste code snippets —
+            replace the URL in each with your own.
+          </p>
 
-      <p>GitHub is primarily a code-hosting platform, but it works just as well for images. A public repository is freely accessible to anyone — including browsers loading your Twine story — and the URLs are permanent as long as you don't rename or delete the file.</p>
+          <p>
+            <strong
+              >Method 1 — (enchant:) macro in a header-tagged passage:</strong
+            >
+          </p>
 
-      <div class="highlight-card">
-        <div class="card-label">Why GitHub specifically</div>
-        <p>It's free with no storage limits for public repositories within reason. The URLs are stable — they don't expire or change without you doing something. You likely have or will have a GitHub account for other coursework. And the web interface makes uploading a drag-and-drop operation — no command line needed.</p>
-      </div>
-
-      <!-- Create repo -->
-      <h3 id="github-repo">Step 1 — Create a repository for your Twine images</h3>
-      <p>If you already have a GitHub account and an existing repository where you want to keep your images, you can skip straight to Step 2. Otherwise:</p>
-
-      <ol class="steps">
-        <li><p>Go to <strong>github.com</strong> and sign in (or create a free account if you don't have one yet).</p></li>
-        <li><p>Click the <strong>+</strong> icon in the top-right corner → <strong>New repository</strong>.</p></li>
-        <li><p>Give it a name — something like <code>twine-images</code> or <code>comp380-assets</code>.</p></li>
-        <li><p>Set the visibility to <strong>Public</strong>. This is essential — a private repository cannot serve images to a browser.</p></li>
-        <li><p>Check <strong>Add a README file</strong> so the repository is not empty.</p></li>
-        <li><p>Click <strong>Create repository</strong>.</p></li>
-      </ol>
-
-      <div class="callout tip">
-        <div class="callout-label">💡 Keep it organised</div>
-        <p>Create a folder called <code>images</code> inside your repository to keep things tidy. You can do this by clicking <strong>Add file → Create new file</strong>, typing <code>images/.gitkeep</code> as the filename, and committing. From then on you can upload images directly into that folder.</p>
-      </div>
-
-      <!-- Upload -->
-      <h3 id="github-upload">Step 2 — Upload your image</h3>
-
-      <ol class="steps">
-        <li><p>Navigate to the folder in your repository where you want to store the image (e.g. the <code>images</code> folder).</p></li>
-        <li><p>Click <strong>Add file → Upload files</strong>.</p></li>
-        <li><p>Drag your image file into the upload area, or click <strong>choose your files</strong> to browse.</p></li>
-        <li><p>Scroll down and click <strong>Commit changes</strong>. The default commit message is fine.</p></li>
-        <li><p>Your image is now uploaded and publicly accessible.</p></li>
-      </ol>
-
-      <div class="callout warning">
-        <div class="callout-label">⚠️ Filenames matter</div>
-        <p>GitHub filenames are case-sensitive and spaces in filenames can cause URL problems. Before uploading, rename your file to use only lowercase letters, numbers, and hyphens — for example <code>forest-path.jpg</code> rather than <code>Forest Path.jpg</code>.</p>
-      </div>
-
-      <!-- Get URL -->
-      <h3 id="github-url">Step 3 — Get the raw URL</h3>
-
-      <p>There are two kinds of URLs for a file on GitHub. You want the <strong>raw</strong> URL — not the regular page URL.</p>
-
-      <ol class="steps">
-        <li><p>After uploading, click on your image file in the repository to open it.</p></li>
-        <li><p>Click the <strong>Raw</strong> button (top right of the file preview area).</p></li>
-        <li><p>Your browser will load just the image. Copy the URL from the address bar.</p></li>
-      </ol>
-
-      <p>The raw URL follows this pattern:</p>
-
-      <div class="url-diagram">
-        <div class="url-line">https://raw.githubusercontent.com/your-username/your-repo/main/images/forest-path.jpg</div>
-      </div>
-
-      <p style="margin-top:0.75rem;">You can also construct it manually if you know your username, repository name, branch name, and file path. The branch is almost always <code>main</code> for a newly created repository.</p>
-
-      <div class="callout warning">
-        <div class="callout-label">⚠️ Do not use the regular GitHub page URL</div>
-        <p>The URL you see when browsing GitHub — like <code>github.com/username/repo/blob/main/images/forest.jpg</code> — points to a webpage containing the image preview, not the image itself. Twine will load an HTML page instead of the image. Always use the <code>raw.githubusercontent.com</code> URL.</p>
-      </div>
-
-      <!-- Use in Twine -->
-      <h3 id="github-use">Step 4 — Use the URL in your Twine story</h3>
-
-      <p>Once you have the raw URL, you can drop it directly into any of the Harlowe background methods. Here are ready-to-paste code snippets — replace the URL in each with your own.</p>
-
-      <p><strong>Method 1 — (enchant:) macro in a header-tagged passage:</strong></p>
-
-<pre><code>{
+          <pre><code>{
 <span class="macro">(enchant:</span> ?page, <span class="macro">(bg:</span><span class="string">"https://raw.githubusercontent.com/your-username/your-repo/main/images/forest-path.jpg"</span>)<span class="macro">)</span>
 <span class="macro">(enchant:</span> ?passage, <span class="macro">(text-colour:</span>black<span class="macro">)</span> + <span class="macro">(bg:</span>#ffffff<span class="macro">)</span> + <span class="macro">(css:</span><span class="string">"padding:1.5em"</span>)<span class="macro">)</span>
 }</code></pre>
 
-      <p><strong>Method 2 — Story Stylesheet with passage tags:</strong></p>
+          <p><strong>Method 2 — with passage tags:</strong></p>
 
-<pre class="css-block"><code>tw-story[tags~=<span class="string">"forest"</span>] {
+          <pre
+            class="css-block"
+          ><code>tw-story[tags~=<span class="string">"forest"</span>] {
   background-image: url(<span class="string">'https://raw.githubusercontent.com/your-username/your-repo/main/images/forest-path.jpg'</span>);
   background-size: cover;
   background-position: center;
@@ -554,281 +1096,525 @@ tw-passage {
   margin: <span class="val">2em auto</span>;
 }</code></pre>
 
-      <div class="callout tip">
-        <div class="callout-label">💡 Test before you submit</div>
-        <p>After adding the URL to your story, publish it to a file and open that file in a browser. If the background image appears, the URL is working correctly. If it doesn't, double-check you are using the raw URL (starting with <code>raw.githubusercontent.com</code>), not the regular GitHub page URL.</p>
-      </div>
-    </section>
+          <div class="callout tip">
+            <div class="callout-label">💡 Test before you submit</div>
+            <p>
+              After adding the URL to your story, publish it to a file and open
+              that file in a browser. If the background image appears, the URL
+              is working correctly. If it doesn't, double-check you are using
+              the raw URL (starting with
+              <code>raw.githubusercontent.com</code>), not the regular GitHub
+              page URL.
+            </p>
+          </div>
+        </section>
 
-    <hr class="sep">
+        <hr class="sep" />
 
-    <!-- ── PART 2: IMAGE PREP ── -->
-    <section class="section">
-      <div class="part-header">
-        <div class="part-badge">2</div>
-        <h2>Preparing Your Images</h2>
-      </div>
+        <!-- ── PART 2: IMAGE PREP ── -->
+        <section class="section">
+          <div class="part-header">
+            <div class="part-badge">2</div>
+            <h2>Preparing Your Images</h2>
+          </div>
 
-      <p>The image itself matters as much as where it is hosted. A poorly prepared image can make your story slow to load, look blurry, or display incorrectly.</p>
+          <p>
+            The image itself matters as much as where it is hosted. A poorly
+            prepared image can make your story slow to load, look blurry, or
+            display incorrectly.
+          </p>
 
-      <!-- Formats -->
-      <h3 id="formats">File formats</h3>
+          <!-- Formats -->
+          <h3 id="formats">File formats</h3>
 
-      <table class="data-table">
-        <thead>
-          <tr><th>Format</th><th>Best for</th><th>Notes</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>JPG / JPEG</td>
-            <td>Photographs, scenes, atmospheric backgrounds</td>
-            <td>Excellent compression for photos. Does not support transparency.</td>
-          </tr>
-          <tr>
-            <td>PNG</td>
-            <td>Graphics, illustrations, anything with transparency</td>
-            <td>Lossless quality. Larger files than JPG for photos.</td>
-          </tr>
-          <tr>
-            <td>WebP</td>
-            <td>Either — best of both worlds</td>
-            <td>Newer format with excellent compression. Supported in all modern browsers.</td>
-          </tr>
-          <tr>
-            <td>GIF</td>
-            <td>Simple animations</td>
-            <td>Animated GIFs work as backgrounds in Harlowe. Very large file sizes for complex animations.</td>
-          </tr>
-        </tbody>
-      </table>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Format</th>
+                <th>Best for</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>JPG / JPEG</td>
+                <td>Photographs, scenes, atmospheric backgrounds</td>
+                <td>
+                  Excellent compression for photos. Does not support
+                  transparency.
+                </td>
+              </tr>
+              <tr>
+                <td>PNG</td>
+                <td>Graphics, illustrations, anything with transparency</td>
+                <td>Lossless quality. Larger files than JPG for photos.</td>
+              </tr>
+              <tr>
+                <td>WebP</td>
+                <td>Either — best of both worlds</td>
+                <td>
+                  Newer format with excellent compression. Supported in all
+                  modern browsers.
+                </td>
+              </tr>
+              <tr>
+                <td>GIF</td>
+                <td>Simple animations</td>
+                <td>
+                  Animated GIFs work as backgrounds in Harlowe. Very large file
+                  sizes for complex animations.
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
-      <p>For background images, <strong>JPG or WebP</strong> are almost always the right choice. They give you the best quality-to-file-size ratio for photographic content.</p>
+          <p>
+            For background images, <strong>JPG or WebP</strong> are almost
+            always the right choice. They give you the best quality-to-file-size
+            ratio for photographic content.
+          </p>
 
-      <!-- File size -->
-      <h3 id="filesize">File size and compression</h3>
+          <!-- File size -->
+          <h3 id="filesize">File size and compression</h3>
 
-      <p>Large images slow down your story — especially if players are on a phone or a slow connection. A background image rarely needs to be more than 200–300KB. Here is a rough guide:</p>
+          <p>
+            Large images slow down your story — especially if players are on a
+            phone or a slow connection. A background image rarely needs to be
+            more than 200–300KB. Here is a rough guide:
+          </p>
 
-      <div class="size-bar">
-        <div class="size-row">
-          <span class="size-label">Under 200KB</span>
-          <div class="size-track"><div class="size-fill green"></div></div>
-          <span class="size-note">Ideal — loads fast on any connection</span>
-        </div>
-        <div class="size-row">
-          <span class="size-label">200–500KB</span>
-          <div class="size-track"><div class="size-fill yellow"></div></div>
-          <span class="size-note">Acceptable — noticeable on slow connections</span>
-        </div>
-        <div class="size-row">
-          <span class="size-label">Over 1MB</span>
-          <div class="size-track"><div class="size-fill red"></div></div>
-          <span class="size-note">Too large — compress before uploading</span>
-        </div>
-      </div>
+          <div class="size-bar">
+            <div class="size-row">
+              <span class="size-label">Under 200KB</span>
+              <div class="size-track"><div class="size-fill green"></div></div>
+              <span class="size-note"
+                >Ideal — loads fast on any connection</span
+              >
+            </div>
+            <div class="size-row">
+              <span class="size-label">200–500KB</span>
+              <div class="size-track"><div class="size-fill yellow"></div></div>
+              <span class="size-note"
+                >Acceptable — noticeable on slow connections</span
+              >
+            </div>
+            <div class="size-row">
+              <span class="size-label">Over 1MB</span>
+              <div class="size-track"><div class="size-fill red"></div></div>
+              <span class="size-note"
+                >Too large — compress before uploading</span
+              >
+            </div>
+          </div>
 
-      <p>The best free tool for resizing and compressing images is <strong>squoosh.app</strong> — it runs entirely in your browser, requires no account, and lets you adjust quality interactively while seeing the file size in real time.</p>
+          <p>
+            The best free tool for resizing and compressing images is
+            <strong>squoosh.app</strong> — it runs entirely in your browser,
+            requires no account, and lets you adjust quality interactively while
+            seeing the file size in real time.
+          </p>
 
-      <ol class="steps">
-        <li><p>Go to <strong>squoosh.app</strong> and drag your image onto the page.</p></li>
-        <li><p>On the right side, choose <strong>MozJPEG</strong> (for photos) or <strong>WebP</strong> as the output format.</p></li>
-        <li><p>Drag the <strong>Quality</strong> slider down until the file size reaches around 150–250KB. The preview updates live so you can see when quality becomes unacceptable.</p></li>
-        <li><p>Use the <strong>Resize</strong> option (the expand icon) to reduce the image dimensions too — a background image rarely needs to be wider than 1920px.</p></li>
-        <li><p>Click the download button to save the compressed file, then upload that to GitHub.</p></li>
-      </ol>
+          <ol class="steps">
+            <li>
+              <p>
+                Go to <strong>squoosh.app</strong> and drag your image onto the
+                page.
+              </p>
+            </li>
+            <li>
+              <p>
+                On the right side, choose <strong>MozJPEG</strong> (for photos)
+                or <strong>WebP</strong> as the output format.
+              </p>
+            </li>
+            <li>
+              <p>
+                Drag the <strong>Quality</strong> slider down until the file
+                size reaches around 150–250KB. The preview updates live so you
+                can see when quality becomes unacceptable.
+              </p>
+            </li>
+            <li>
+              <p>
+                Use the <strong>Resize</strong> option (the expand icon) to
+                reduce the image dimensions too — a background image rarely
+                needs to be wider than 1920px.
+              </p>
+            </li>
+            <li>
+              <p>
+                Click the download button to save the compressed file, then
+                upload that to GitHub.
+              </p>
+            </li>
+          </ol>
 
-      <!-- Ask Claude -->
-      <h3 id="ask-claude">Asking Claude for help with image preparation</h3>
+          <!-- Ask Claude -->
+          <h3 id="ask-claude">Asking Claude for help with image preparation</h3>
 
-      <p>If you are unsure about file formats, compression settings, or whether a particular image will work as a background, you can ask Claude directly. Some useful prompts:</p>
+          <p>
+            If you are unsure about file formats, compression settings, or
+            whether a particular image will work as a background, you can ask
+            Claude directly. Some useful prompts:
+          </p>
 
-      <div class="callout claude">
-        <div class="callout-label">💬 Example prompts</div>
-        <p>"I want to use this image as a background in Twine. It's currently 4.2MB as a JPG. What file size and dimensions should I aim for, and what's the best way to compress it?"</p>
-        <p>"What aspect ratio works best for a full-page background image in Twine on a desktop browser?"</p>
-        <p>"I have an image with a lot of dark detail. How should I adjust the passage text box so the text is still readable over it?"</p>
-        <p>"This is my raw.githubusercontent.com URL — can you check it looks correctly formed and tell me what might be wrong if it's not loading?"</p>
-      </div>
+          <div class="callout claude">
+            <div class="callout-label">💬 Example prompts</div>
+            <p>
+              "I want to use this image as a background in Twine. It's currently
+              4.2MB as a JPG. What file size and dimensions should I aim for,
+              and what's the best way to compress it?"
+            </p>
+            <p>
+              "What aspect ratio works best for a full-page background image in
+              Twine on a desktop browser?"
+            </p>
+            <p>
+              "I have an image with a lot of dark detail. How should I adjust
+              the passage text box so the text is still readable over it?"
+            </p>
+            <p>
+              "This is my raw.githubusercontent.com URL — can you check it looks
+              correctly formed and tell me what might be wrong if it's not
+              loading?"
+            </p>
+          </div>
 
-      <div class="callout tip">
-        <div class="callout-label">💡 You can also share images with Claude</div>
-        <p>If your AI interface supports image uploads, you can paste or upload an image and ask Claude whether it would work well as a background — whether the contrast is sufficient, whether the composition leaves space for a text box, or how the colours would interact with your story's palette.</p>
-      </div>
-    </section>
+          <div class="callout tip">
+            <div class="callout-label">
+              💡 You can also share images with Claude
+            </div>
+            <p>
+              If your AI interface supports image uploads, you can paste or
+              upload an image and ask Claude whether it would work well as a
+              background — whether the contrast is sufficient, whether the
+              composition leaves space for a text box, or how the colours would
+              interact with your story's palette.
+            </p>
+          </div>
+        </section>
 
-    <hr class="sep">
+        <hr class="sep" />
 
-    <!-- ── PART 3: OTHER OPTIONS ── -->
-    <section class="section">
-      <div class="part-header">
-        <div class="part-badge">3</div>
-        <h2>Other Hosting Options &amp; Image Sources</h2>
-      </div>
+        <!-- ── PART 3: OTHER OPTIONS ── -->
+        <section class="section">
+          <div class="part-header">
+            <div class="part-badge">3</div>
+            <h2>Other Hosting Options &amp; Image Sources</h2>
+          </div>
 
-      <!-- Other hosts -->
-      <h3 id="other-hosts">Other ways to host images</h3>
+          <!-- Other hosts -->
+          <h3 id="other-hosts">Other ways to host images</h3>
 
-      <table class="data-table">
-        <thead>
-          <tr><th>Option</th><th>How to get a direct URL</th><th>Caveats</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Flickr</td>
-            <td>Open the photo page → click the download arrow → choose a size → the opened image tab gives you the direct URL.</td>
-            <td>Works reliably for your own uploaded photos. Images must be set to public. Free account has a 1000-photo limit.</td>
-          </tr>
-          <tr>
-            <td>Same folder as the .html file</td>
-            <td>Use a relative path like <code>"images/forest.jpg"</code> and keep an <code>images/</code> subfolder next to the exported <code>.html</code> file.</td>
-            <td>Works when both files stay together. Breaks if the story is shared without the images folder. Not suitable for submitting a single file.</td>
-          </tr>
-          <tr>
-            <td>Google Drive</td>
-            <td>Upload file → right-click → Get link → change to Anyone with the link. The sharing URL is not a direct image URL — you need to extract the file ID and construct <code>drive.google.com/uc?id=FILE_ID</code>.</td>
-            <td>Google periodically changes how direct links work. Unreliable for long-term use. Not recommended.</td>
-          </tr>
-          <tr>
-            <td>Dropbox</td>
-            <td>Share a file → copy the link → change <code>?dl=0</code> at the end to <code>?raw=1</code>.</td>
-            <td>Works but Dropbox sometimes restricts traffic on free accounts if images are loaded frequently.</td>
-          </tr>
-          <tr>
-            <td>Your own website / UNC hosting</td>
-            <td>Upload via FTP or your host's file manager, then use the full <code>https://</code> URL.</td>
-            <td>Most reliable option if you have web hosting available.</td>
-          </tr>
-        </tbody>
-      </table>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Option</th>
+                <th>How to get a direct URL</th>
+                <th>Caveats</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Flickr</td>
+                <td>
+                  Open the photo page → click the download arrow → choose a size
+                  → the opened image tab gives you the direct URL.
+                </td>
+                <td>
+                  Works reliably for your own uploaded photos. Images must be
+                  set to public. Free account has a 1000-photo limit.
+                </td>
+              </tr>
+              <tr>
+                <td>Same folder as the .html file</td>
+                <td>
+                  Use a relative path like <code>"images/forest.jpg"</code> and
+                  keep an <code>images/</code> subfolder next to the exported
+                  <code>.html</code> file.
+                </td>
+                <td>
+                  Works when both files stay together. Breaks if the story is
+                  shared without the images folder. Not suitable for submitting
+                  a single file.
+                </td>
+              </tr>
+              <tr>
+                <td>Google Drive</td>
+                <td>
+                  Upload file → right-click → Get link → change to Anyone with
+                  the link. The sharing URL is not a direct image URL — you need
+                  to extract the file ID and construct
+                  <code>drive.google.com/uc?id=FILE_ID</code>.
+                </td>
+                <td>
+                  Google periodically changes how direct links work. Unreliable
+                  for long-term use. Not recommended.
+                </td>
+              </tr>
+              <tr>
+                <td>Dropbox</td>
+                <td>
+                  Share a file → copy the link → change <code>?dl=0</code> at
+                  the end to <code>?raw=1</code>.
+                </td>
+                <td>
+                  Works but Dropbox sometimes restricts traffic on free accounts
+                  if images are loaded frequently.
+                </td>
+              </tr>
+              <tr>
+                <td>Your own website / UNC hosting</td>
+                <td>
+                  Upload via FTP or your host's file manager, then use the full
+                  <code>https://</code> URL.
+                </td>
+                <td>Most reliable option if you have web hosting available.</td>
+              </tr>
+            </tbody>
+          </table>
 
-      <!-- Free image sources -->
-      <h3 id="free-images">Free image sources</h3>
+          <!-- Free image sources -->
+          <h3 id="free-images">Free image sources</h3>
 
-      <p>If you need images you do not own yourself, these sources provide free-to-use photography and illustration with stable direct URLs:</p>
+          <p>
+            If you need images you do not own yourself, these sources provide
+            free-to-use photography and illustration with stable direct URLs:
+          </p>
 
-      <table class="data-table">
-        <thead>
-          <tr><th>Source</th><th>How to get a URL</th><th>Licence</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Unsplash (unsplash.com)</td>
-            <td>Open any photo → right-click the image → <strong>Copy image address</strong>. The URL ends in a file format extension.</td>
-            <td>Free for any use including commercial. No attribution required (though appreciated).</td>
-          </tr>
-          <tr>
-            <td>Pexels (pexels.com)</td>
-            <td>Same as Unsplash — right-click the image on the photo page → <strong>Copy image address</strong>.</td>
-            <td>Free for any use. No attribution required.</td>
-          </tr>
-          <tr>
-            <td>Wikimedia Commons (commons.wikimedia.org)</td>
-            <td>Open the file description page → click the image to open it full-size → copy the URL from the address bar.</td>
-            <td>Varies by image — check the specific licence on the file page. Most are Creative Commons.</td>
-          </tr>
-          <tr>
-            <td>The Public Domain Review (publicdomainreview.org)</td>
-            <td>Right-click images → <strong>Copy image address</strong>. Or download and host on GitHub.</td>
-            <td>Public domain. Excellent for historical, illustrative, and artistic imagery.</td>
-          </tr>
-        </tbody>
-      </table>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Source</th>
+                <th>How to get a URL</th>
+                <th>Licence</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Unsplash (unsplash.com)</td>
+                <td>
+                  Open any photo → right-click the image →
+                  <strong>Copy image address</strong>. The URL ends in a file
+                  format extension.
+                </td>
+                <td>
+                  Free for any use including commercial. No attribution required
+                  (though appreciated).
+                </td>
+              </tr>
+              <tr>
+                <td>Pexels (pexels.com)</td>
+                <td>
+                  Same as Unsplash — right-click the image on the photo page →
+                  <strong>Copy image address</strong>.
+                </td>
+                <td>Free for any use. No attribution required.</td>
+              </tr>
+              <tr>
+                <td>Wikimedia Commons (commons.wikimedia.org)</td>
+                <td>
+                  Open the file description page → click the image to open it
+                  full-size → copy the URL from the address bar.
+                </td>
+                <td>
+                  Varies by image — check the specific licence on the file page.
+                  Most are Creative Commons.
+                </td>
+              </tr>
+              <tr>
+                <td>The Public Domain Review (publicdomainreview.org)</td>
+                <td>
+                  Right-click images → <strong>Copy image address</strong>. Or
+                  download and host on GitHub.
+                </td>
+                <td>
+                  Public domain. Excellent for historical, illustrative, and
+                  artistic imagery.
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
-      <div class="callout warning">
-        <div class="callout-label">⚠️ Check what you're actually copying</div>
-        <p>A URL that ends in <code>.jpg</code>, <code>.png</code>, or <code>.webp</code> is a direct image URL. A URL that ends in a page path — like <code>/photos/forest-12345</code> — is a webpage that contains an image, not the image itself. Open the URL in a new browser tab: if you see only the image with no surrounding interface, it is a direct URL. If you see a full webpage, keep looking.</p>
-      </div>
-    </section>
+          <div class="callout warning">
+            <div class="callout-label">
+              ⚠️ Check what you're actually copying
+            </div>
+            <p>
+              A URL that ends in <code>.jpg</code>, <code>.png</code>, or
+              <code>.webp</code> is a direct image URL. A URL that ends in a
+              page path — like <code>/photos/forest-12345</code> — is a webpage
+              that contains an image, not the image itself. Open the URL in a
+              new browser tab: if you see only the image with no surrounding
+              interface, it is a direct URL. If you see a full webpage, keep
+              looking.
+            </p>
+          </div>
+        </section>
 
-    <hr class="sep">
+        <hr class="sep" />
 
-    <!-- ── CHECKLIST ── -->
-    <section class="section" id="checklist">
-      <div class="part-header">
-        <div class="part-badge">✓</div>
-        <h2>Checklist</h2>
-      </div>
+        <!-- ── CHECKLIST ── -->
+        <section class="section" id="checklist">
+          <div class="part-header">
+            <div class="part-badge">✓</div>
+            <h2>Checklist</h2>
+          </div>
 
-      <ul class="checklist">
-        <li>Image is in JPG, WebP, or PNG format</li>
-        <li>Image has been compressed to under 300KB using squoosh.app or equivalent</li>
-        <li>Filename uses only lowercase letters, numbers, and hyphens — no spaces</li>
-        <li>GitHub repository is set to <strong>Public</strong></li>
-        <li>Image has been uploaded to the repository via Add file → Upload files</li>
-        <li>Raw URL obtained by clicking <strong>Raw</strong> on the file preview page</li>
-        <li>Raw URL starts with <code>raw.githubusercontent.com</code> — not <code>github.com</code></li>
-        <li>URL pasted into Twine story (enchant macro or Story Stylesheet)</li>
-        <li>Story published to file and tested in a browser — background image visible</li>
-        <li>Story file tested on a different computer or sent to someone else — image still loads</li>
-      </ul>
-    </section>
+          <ul class="checklist">
+            <li>Image is in JPG, WebP, or PNG format</li>
+            <li>
+              Image has been compressed to under 300KB using squoosh.app or
+              equivalent
+            </li>
+            <li>
+              Filename uses only lowercase letters, numbers, and hyphens — no
+              spaces
+            </li>
+            <li>GitHub repository is set to <strong>Public</strong></li>
+            <li>
+              Image has been uploaded to the repository via Add file → Upload
+              files
+            </li>
+            <li>
+              Raw URL obtained by clicking <strong>Raw</strong> on the file
+              preview page
+            </li>
+            <li>
+              Raw URL starts with <code>raw.githubusercontent.com</code> — not
+              <code>github.com</code>
+            </li>
+            <li>
+              URL pasted into Twine story (enchant macro or Story >  Stylesheet)
+            </li>
+            <li>
+              Story published to file and tested in a browser — background image
+              visible
+            </li>
+            <li>
+              Story file tested on a different computer or sent to someone else
+              — image still loads
+            </li>
+          </ul>
+        </section>
 
-    <hr class="sep">
+        <hr class="sep" />
 
-    <!-- ── TROUBLESHOOTING ── -->
-    <section class="section" id="troubleshooting">
-      <div class="part-header">
-        <div class="part-badge">?</div>
-        <h2>Troubleshooting</h2>
-      </div>
+        <!-- ── TROUBLESHOOTING ── -->
+        <section class="section" id="troubleshooting">
+          <div class="part-header">
+            <div class="part-badge">?</div>
+            <h2>Troubleshooting</h2>
+          </div>
 
-      <table class="data-table">
-        <thead>
-          <tr><th>Problem</th><th>Most likely cause and fix</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Image does not load in the exported story</td>
-            <td>You are using the GitHub page URL (<code>github.com/...</code>) instead of the raw URL (<code>raw.githubusercontent.com/...</code>). Go back to the file on GitHub, click Raw, and copy the URL from the address bar.</td>
-          </tr>
-          <tr>
-            <td>Image loads in Twine's Play mode but not in the exported file</td>
-            <td>You may have used a local path like <code>"forest.jpg"</code>. Twine's internal preview is more permissive than a browser opening a local file. Replace the path with a full hosted URL.</td>
-          </tr>
-          <tr>
-            <td>Image loads for you but not for someone you shared the file with</td>
-            <td>Your GitHub repository may be set to Private. Change it to Public in the repository settings (Settings → Danger Zone → Change repository visibility).</td>
-          </tr>
-          <tr>
-            <td>Image URL works in the browser but shows a broken image in Twine</td>
-            <td>The host may be blocking cross-origin requests (CORS). GitHub's raw URLs do not have this problem. If you are using another host, try moving the image to GitHub instead.</td>
-          </tr>
-          <tr>
-            <td>Story loads very slowly</td>
-            <td>The image file is too large. Compress it with squoosh.app before uploading. Background images rarely need to be larger than 200–300KB.</td>
-          </tr>
-          <tr>
-            <td>Image URL contains spaces or special characters and doesn't work</td>
-            <td>Rename the file before uploading. Spaces in filenames become <code>%20</code> in URLs and can cause issues. Use hyphens instead: <code>forest-path.jpg</code> not <code>forest path.jpg</code>.</td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Problem</th>
+                <th>Most likely cause and fix</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Image does not load in the exported story</td>
+                <td>
+                  You are using the GitHub page URL
+                  (<code>github.com/...</code>) instead of the raw URL
+                  (<code>raw.githubusercontent.com/...</code>). Go back to the
+                  file on GitHub, click Raw, and copy the URL from the address
+                  bar.
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  Image loads in Twine's Play mode but not in the exported file
+                </td>
+                <td>
+                  You may have used a local path like <code>"forest.jpg"</code>.
+                  Twine's internal preview is more permissive than a browser
+                  opening a local file. Replace the path with a full hosted URL.
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  Image loads for you but not for someone you shared the file
+                  with
+                </td>
+                <td>
+                  Your GitHub repository may be set to Private. Change it to
+                  Public in the repository settings (Settings → Danger Zone →
+                  Change repository visibility).
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  Image URL works in the browser but shows a broken image in
+                  Twine
+                </td>
+                <td>
+                  The host may be blocking cross-origin requests (CORS).
+                  GitHub's raw URLs do not have this problem. If you are using
+                  another host, try moving the image to GitHub instead.
+                </td>
+              </tr>
+              <tr>
+                <td>Story loads very slowly</td>
+                <td>
+                  The image file is too large. Compress it with squoosh.app
+                  before uploading. Background images rarely need to be larger
+                  than 200–300KB.
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  Image URL contains spaces or special characters and doesn't
+                  work
+                </td>
+                <td>
+                  Rename the file before uploading. Spaces in filenames become
+                  <code>%20</code> in URLs and can cause issues. Use hyphens
+                  instead: <code>forest-path.jpg</code> not
+                  <code>forest path.jpg</code>.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
 
-    <footer style="margin-top:3rem; padding-top:1.5rem; border-top:1px solid var(--rule);">
-      <p style="font-size:12px; color:var(--sub); letter-spacing:0.04em;">COMP 380 · Technology, Ethics &amp; Culture · Self-Hosting Images for Twine</p>
-    </footer>
+        <footer
+          style="
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--rule);
+          "
+        >
+          <p style="font-size: 12px; color: var(--sub); letter-spacing: 0.04em">
+            COMP 380 · Technology, Ethics &amp; Culture · Self-Hosting Images
+            for Twine
+          </p>
+        </footer>
+      </main>
+    </div>
 
-  </main>
-</div>
-
-<script>
-(function() {
-  var sections = document.querySelectorAll('[id]');
-  var navLinks = document.querySelectorAll('.nav-link');
-  function onScroll() {
-    var scrollY = window.scrollY + 120;
-    var current = '';
-    sections.forEach(function(s) { if (s.offsetTop <= scrollY) current = s.id; });
-    navLinks.forEach(function(l) {
-      l.classList.remove('active');
-      if (l.getAttribute('href') === '#' + current) l.classList.add('active');
-    });
-  }
-  window.addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
-})();
-</script>
-
-</body>
+    <script>
+      (function () {
+        var sections = document.querySelectorAll("[id]");
+        var navLinks = document.querySelectorAll(".nav-link");
+        function onScroll() {
+          var scrollY = window.scrollY + 120;
+          var current = "";
+          sections.forEach(function (s) {
+            if (s.offsetTop <= scrollY) current = s.id;
+          });
+          navLinks.forEach(function (l) {
+            l.classList.remove("active");
+            if (l.getAttribute("href") === "#" + current)
+              l.classList.add("active");
+          });
+        }
+        window.addEventListener("scroll", onScroll, { passive: true });
+        onScroll();
+      })();
+    </script>
+  </body>
 </html>
